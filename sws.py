@@ -354,8 +354,9 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, over
             for band in range(formants.shape[1]):
                 freq = formants[k, band]
                 bw = formant_bw[k, band]
-                amp = 50.0 / (bw)  # weight sines by inverse bandwidth
-                syn_slice += np.sin(freq * (t + i) / (sr / (2 * np.pi))) * amp
+                amp = np.exp(bw/30.0)  # weight sines by inverse bandwidth                
+                if freq>90.0:
+                    syn_slice += np.sin(freq * (t + i) / (sr / (2 * np.pi))) * amp
 
             synthesize[i : i + frame_len] += window * syn_slice * env_rms[k]
         k += 1
@@ -378,19 +379,18 @@ def sinethesise_interpolated(wave, frame_len, order, sr=44100, use_lsp=False, in
     t = np.arange(len(wave))/sr
     env_amp = env(t)
     
-    plt.figure()
     for band in range(formants.shape[1]):
         f = freqs[band](t)    
         amp = 50.0 / bws[band](t)
-        plt.plot(t, f)
+        
         synthesize += np.sin(f * t * 2 * np.pi) * amp 
-    plt.plot(t, env_amp*1000, 'k')
-    plt.show()
     return synthesize * env_amp
 
 def bp_filter_and_decimate(x, low, high, fs, decimate=1):
     b, a = scipy.signal.butter(4, Wn=[low, high], btype="band", fs=fs)
     decimated = scipy.signal.filtfilt(b, a, x)[::decimate]
+    # pre-emphasis    
+    decimated = scipy.signal.filtfilt([1.0], np.array([1.0, 0.63]), decimated)
     return decimated
 
 def normalize(x):
@@ -415,7 +415,7 @@ if __name__ == "__main__":
     parser.add_argument("--lp", help="Lowpass filter cutoff", type=float, default=100)
     parser.add_argument("--hp", help="Highpass filter cutoff", type=float, default=3000)
     parser.add_argument(
-        "--order", "-o", help="LPC order; number of components in synthesis", default=5, type=int
+        "--order", "-o", help="Number of components in synthesis", default=3, type=int
     )
     parser.add_argument(
         "--use_lsp",        
@@ -480,12 +480,13 @@ if __name__ == "__main__":
     wav_filtered = normalize(bp_filter_and_decimate(
         wav, args.lp, args.hp, fs, decimate=args.decimate
     ))
+    order = 2 * args.order + 2
     if args.sine:
         if args.interpolate:
                 modulated = sinethesise_interpolated(
                 wav_filtered,
                 frame_len=args.window,
-                order=args.order,
+                order=order,
                 use_lsp=args.use_lsp,
                 sr=fs / args.decimate,                
                 interp='cubic'
@@ -494,7 +495,7 @@ if __name__ == "__main__":
             modulated = sinethesise(
                 wav_filtered,
                 frame_len=args.window,
-                order=args.order,
+                order=order,
                 use_lsp=args.use_lsp,
                 sr=fs / args.decimate,
                 noise=0.0,
@@ -512,7 +513,7 @@ if __name__ == "__main__":
         if args.noise:
             carrier = np.random.normal(0,1,len(wav_filtered))
 
-        modulated = lpc_vocode(wav_filtered, frame_len=args.window, order=args.order,
+        modulated = lpc_vocode(wav_filtered, frame_len=args.window, order=order,
             carrier=carrier, residual_amp=0, vocode_amp=1, env=True, freq_shift=1)
 
     # un-decimate, normalize and write out
