@@ -61,11 +61,10 @@ More examples:
 
     optional arguments:
     -h, --help            show this help message and exit
-    --lp LP               Low frequency cutoff; removes frequencies below this
-    --hp HP               High frequency cutoff; removes frequenceis above this
+    --low <freq>               Low frequency cutoff; removes frequencies below this
+    --high <freq>              High frequency cutoff; removes frequenceis above this
     --order ORDER, -o ORDER
-                            LPC order; number of components in synthesis
-    --use_lsp, -l         LPC order; number of components in synthesis
+                            LPC order; number of components in synthesis    
     --decimate DECIMATE, -d DECIMATE
                             Sample rate decimation before analysis
     --window WINDOW, -w WINDOW

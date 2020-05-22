@@ -381,7 +381,7 @@ def sinethesise_interpolated(wave, frame_len, order, sr=44100, use_lsp=False, in
     
     for band in range(formants.shape[1]):
         f = freqs[band](t)    
-        amp = 50.0 / bws[band](t)
+        amp = np.exp(-bws[band](t) / 30.0)
         
         synthesize += np.sin(f * t * 2 * np.pi) * amp 
     return synthesize * env_amp
@@ -412,25 +412,21 @@ if __name__ == "__main__":
         help="The output file to write to; defaults to <input>_sws.wav",
         default=None,
     )
-    parser.add_argument("--lp", help="Lowpass filter cutoff", type=float, default=100)
-    parser.add_argument("--hp", help="Highpass filter cutoff", type=float, default=3000)
+    parser.add_argument("--low", help="Lowpass filter cutoff", type=float, default=150)
+    parser.add_argument("--high", help="Highpass filter cutoff", type=float, default=3000)
     parser.add_argument(
-        "--order", "-o", help="Number of components in synthesis", default=3, type=int
+        "--order", "-o", help="Number of components in synthesis", default=4, type=int
     )
+   
     parser.add_argument(
-        "--use_lsp",        
-        help="LPC order; number of components in synthesis",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--decimate", "-d", help="Sample rate decimation before analysis", default=4, type=int
+        "--decimate", "-d", help="Sample rate decimation before analysis", default=8, type=int
     )
     parser.add_argument(
         "--window",
         "-w",
         type=int,
         help="LPC window size; smaller means faster changing signal; larger is smoother",
-        default=300,
+        default=250,
     )
     parser.add_argument(
         "--interpolate",
@@ -478,7 +474,7 @@ if __name__ == "__main__":
     print(f"Read {input_path}")
 
     wav_filtered = normalize(bp_filter_and_decimate(
-        wav, args.lp, args.hp, fs, decimate=args.decimate
+        wav, args.low, args.high, fs, decimate=args.decimate
     ))
     order = 2 * args.order + 2
     if args.sine:
@@ -487,16 +483,16 @@ if __name__ == "__main__":
                 wav_filtered,
                 frame_len=args.window,
                 order=order,
-                use_lsp=args.use_lsp,
+                use_lsp=True,
                 sr=fs / args.decimate,                
-                interp='cubic'
+                interp='linear'
             )
         else:
             modulated = sinethesise(
                 wav_filtered,
                 frame_len=args.window,
                 order=order,
-                use_lsp=args.use_lsp,
+                use_lsp=True,
                 sr=fs / args.decimate,
                 noise=0.0,
                 overlap=args.overlap
