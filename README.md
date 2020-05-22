@@ -34,12 +34,12 @@ Examples of use:
 More examples:
 
 ```sh
-    # uses LSP mode, and six sine wave components (order 6)
-    python sws.py hello.wav -o 6 --use-lsp 
+    # uses six sine wave components (order 6)
+    python sws.py hello.wav -o 6 
 
     # sets the pre-filtering bandpass to be [40, 4000]Hz, and decimates 
-    # by a factor of 8 before resynthesizing
-    python sws.py hello.wav  --lp 40 --hp 4000 -d 8
+    # by a factor of 4 before resynthesizing
+    python sws.py hello.wav  --low 40 --high 4000 -d 4
 
     # uses modulation of a buzz (pulse train) @ 100Hz instead of sines
     python sws.py hello.wav --buzz 100
