@@ -77,6 +77,8 @@ More examples:
 
 ## Technical details
 
+Use 16 bit, 44.1KHz mono WAV files as input for best results.
+
 This implementation uses LPC estimation to estimate the formant centres. This form can either be used directly or using line spectral pairs (theoretically more stable, but doesn't always sound good due to very even spacing of formants through the speech band).
 
 Suggestions (especially pull requests!) on how to improve the quality of the output would be most welcome.
