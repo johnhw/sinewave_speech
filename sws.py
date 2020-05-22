@@ -278,7 +278,7 @@ def lpc_vocode(
     return vocode[: len(wave)]
 
 
-def get_formants(wave, frame_len, order, sr=44100, use_lsp=False):
+def get_formants(wave, frame_len, order, sr=44100, use_lsp=False, overlap=None):
     """Plot the formants of the given wave form.
     
     Parameters:
@@ -290,12 +290,13 @@ def get_formants(wave, frame_len, order, sr=44100, use_lsp=False):
     
     Plots both the formant trace and the relative RMS power of the residual signal.
     """
+    overlap = overlap or frame_len // 2
     formants = []
     formant_bw = []
     times = []
     res_rms = []
     env = []
-    for i in range(0, len(wave), frame_len // 2):
+    for i in range(0, len(wave), overlap):
         # slice the wave
         wave_slice = wave[i : i + frame_len]
         if len(wave_slice) == frame_len:
@@ -333,21 +334,21 @@ def get_formants(wave, frame_len, order, sr=44100, use_lsp=False):
     )
 
 
-def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0):
+def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, overlap=None):
+    overlap = overlap or 0.5
+    frame_overlap = int(frame_len * overlap)
     times, formants, formant_bw, res_rms, env_rms = get_formants(
-        wave, frame_len, order, sr, use_lsp
+        wave, frame_len, order, sr, use_lsp, frame_overlap
     )
     synthesize = np.zeros_like(wave)
     window = scipy.signal.hann(frame_len)
-    t = np.arange(frame_len)
-    k = 0
-    for i in range(0, len(wave), frame_len // 2):
+    t = np.arange(0.0, frame_len)
+    k = 0    
+    for i in range(0, len(wave), frame_overlap):
 
         if len(synthesize[i : i + frame_len]) == frame_len:
             # noise component
-            syn_slice = (
-                np.random.normal(0, 1, frame_len) * (res_rms[k] / env_rms[k]) * noise
-            )
+            syn_slice = np.zeros_like(t)
 
             # resonances
             for band in range(formants.shape[1]):
@@ -417,8 +418,7 @@ if __name__ == "__main__":
         "--order", "-o", help="LPC order; number of components in synthesis", default=5, type=int
     )
     parser.add_argument(
-        "--use_lsp",
-        "-l",
+        "--use_lsp",        
         help="LPC order; number of components in synthesis",
         action="store_true",
     )
@@ -454,6 +454,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--noise", "-n", help="Resynthesize using filtered white noise", action="store_true"
+    )
+
+    parser.add_argument(
+        "--overlap", "-l", help="Window overlap, as fraction of the window length", default=0.5, type=float,
     )
 
     args = parser.parse_args()
@@ -494,6 +498,7 @@ if __name__ == "__main__":
                 use_lsp=args.use_lsp,
                 sr=fs / args.decimate,
                 noise=0.0,
+                overlap=args.overlap
             )
     if args.buzz or args.noise:
 
