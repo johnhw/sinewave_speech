@@ -24,13 +24,16 @@ Requires `scipy` and `numpy` only.
 
 Examples of use:
 
+```sh
     python sws.py hello.wav    # converts hello.wav to hello_sws.wav
 
     # explicit output name
     python sws.py lpc.wav lpc_modified.wav 
+```
 
 More examples:
 
+```sh
     # uses LSP mode, and six sine wave components (order 6)
     python sws.py hello.wav -o 6 --use-lsp 
 
@@ -43,7 +46,7 @@ More examples:
 
     # uses modulation of white noise instead of sinewaves
     python sws.py hello.wav --noise
-
+```
 
 ## Command line parameters
 

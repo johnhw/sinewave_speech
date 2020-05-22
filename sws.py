@@ -469,5 +469,5 @@ if __name__ == "__main__":
     # un-decimate, normalize and write out
     up_modulated = normalize(upsample(modulated, args.decimate))
     
-    scipy.io.wavfile.write(output_path, fs, up_modulated)
+    scipy.io.wavfile.write(output_path, fs, (up_modulated*32767.0).astype(np.int16))
     print(f"Wrote {output_path}")
