@@ -6,16 +6,17 @@ A Python implementation of sinewave speech. Converts WAV files of human-speech t
 Listen to some sounds. If you've not listened to these before, listen to the sinewave version *first*!
 
 
-* Ex. 1 (sinewave) [sounds/ex1_sws.wav] | Ex. 1 (original) [sounds/ex1.wav] | `-d 4 --hp 3000 --lp 100 -o 8`
-* Ex. 2 (sinewave) [sounds/ex2_sws.wav] | Ex. 2 (original) [sounds/ex2.wav] | `-o 6 --window 200 --use_lsp`
-* Ex. 3 (sinewave) [sounds/ex3_sws.wav] | Ex. 3 (original) [sounds/ex3.wav] | `-o 8`
-* Ex. 4 (sinewave) [sounds/ex4_sws.wav] | Ex. 4 (original) [sounds/ex4.wav] | `-o 10 --hp 2800 -d 8 --window 250`
-* Ex. 5 (sinewave) [sounds/ex5_sws.wav] | Ex. 5 (original) [sounds/ex5.wav] | `-d 12 --hp 2000 --window 90`
-* Ex. 6 (sinewave) [sounds/ex6_sws.wav] | Ex. 6 (original) [sounds/ex6.wav] | `-o 5 --use_lsp --lp 330 --hp 2500`
-* Ex. 7 (buzz) [sounds/ex7_sws.wav] | Ex. 7 (original) [sounds/ex7.wav] | ` --buzz 80 --window 300 -d 8 --hp 2000`
-* Ex. 8 (noise) [sounds/ex8_sws.wav] | Ex. 8 (original) [sounds/ex8.wav] | `--noise --lp 200`
-* Ex. 9 (sinewave) [sounds/ex9_sws.wav] | Ex. 9 (original) [sounds/ex9.wav] | `--lp 100 --hp 2800 -d 2 --window 1500 -o 30`
+* [Ex. 1 (sinewave)](sounds/ex1_sws.wav) | [Ex. 1 (original)](sounds/ex1.wav) | `-d 4 --hp 3000 --lp 100 -o 8`
+* [Ex. 2 (sinewave)](sounds/ex2_sws.wav) | [Ex. 2 (original)](sounds/ex2.wav) | `-o 6 --window 200 --use_lsp`
+* [Ex. 3 (sinewave)](sounds/ex3_sws.wav) | [Ex. 3 (original)](sounds/ex3.wav) | `-o 8`
+* [Ex. 4 (sinewave)](sounds/ex4_sws.wav) | [Ex. 4 (original)](sounds/ex4.wav) | `-o 10 --hp 2800 -d 8 --window 250`
+* [Ex. 5 (sinewave)](sounds/ex5_sws.wav) | [Ex. 5 (original)](sounds/ex5.wav) | `-d 12 --hp 2000 --window 90`
+* [Ex. 6 (sinewave)](sounds/ex6_sws.wav) | [Ex. 6 (original)](sounds/ex6.wav) | `-o 5 --use_lsp --lp 330 --hp 2500`
+* [Ex. 7 (buzz)](sounds/ex7_sws.wav) | [Ex. 7 (original)](sounds/ex7.wav) | ` --buzz 80 --window 300 -d 8 --hp 2000`
+* [Ex. 8 (noise)](sounds/ex8_sws.wav) | [Ex. 8 (original)](sounds/ex8.wav) | `--noise --lp 200`
+* [Ex. 9 (sinewave)](sounds/ex9_sws.wav) | [Ex. 9 (original)](sounds/ex9.wav) | `--lp 100 --hp 2800 -d 2 --window 1500 -o 30`
 
+*(these would probably be better if I spoke more clearly...)*
 
 ## Usage 
 
