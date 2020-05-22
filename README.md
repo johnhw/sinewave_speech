@@ -6,15 +6,15 @@ A Python implementation of sinewave speech. Converts WAV files of human-speech t
 Listen to some sounds. If you've not listened to these before, listen to the sinewave version *first*!
 
 
-* [Ex. 1 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex1_sws.wav) | [Ex. 1 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex1.wav) | `-d 4 --hp 3000 --lp 100 -o 8`
-* [Ex. 2 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex2_sws.wav) | [Ex. 2 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex2.wav) | `-o 6 --window 200 --use_lsp`
-* [Ex. 3 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex3_sws.wav) | [Ex. 3 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex3.wav) | `-o 8`
-* [Ex. 4 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex4_sws.wav) | [Ex. 4 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex4.wav) | `-o 10 --hp 2800 -d 8 --window 250`
-* [Ex. 5 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex5_sws.wav) | [Ex. 5 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex5.wav) | `-d 12 --hp 2000 --window 90`
-* [Ex. 6 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex6_sws.wav) | [Ex. 6 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex6.wav) | `-o 5 --use_lsp --lp 330 --hp 2500`
-* [Ex. 7 (buzz)](http://johnhw.github.io/sinewave_speech/sounds/ex7_sws.wav) | [Ex. 7 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex7.wav) | ` --buzz 80 --window 300 -d 8 --hp 2000`
-* [Ex. 8 (noise)](http://johnhw.github.io/sinewave_speech/sounds/ex8_sws.wav) | [Ex. 8 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex8.wav) | `--noise --lp 200`
-* [Ex. 9 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex9_sws.wav) | [Ex. 9 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex9.wav) | `--lp 100 --hp 2800 -d 2 --window 1500 -o 30`
+* [Ex. 1 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex1_sws.wav) | [Ex. 1 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex1.wav) | `-d 4 --high 300 --low 100 -o 4`
+* [Ex. 2 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex2_sws.wav) | [Ex. 2 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex2.wav) | `-o 5 --window 200 --low 200`
+* [Ex. 3 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex3_sws.wav) | [Ex. 3 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex3.wav) | `-o 4`
+* [Ex. 4 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex4_sws.wav) | [Ex. 4 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex4.wav) | `-o 5 --high 2800 -d 8 --window 250`
+* [Ex. 5 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex5_sws.wav) | [Ex. 5 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex5.wav) | `-d 12 --high 2000 --window 90`
+* [Ex. 6 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex6_sws.wav) | [Ex. 6 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex6.wav) | `-d 8 --high 2500 --low 330 --window 90`
+* [Ex. 7 (buzz)](http://johnhw.github.io/sinewave_speech/sounds/ex7_sws.wav) | [Ex. 7 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex7.wav) | `--buzz 80 --window 300 -d 8 --high 2000`
+* [Ex. 8 (noise)](http://johnhw.github.io/sinewave_speech/sounds/ex8_sws.wav) | [Ex. 8 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex8.wav) | `--noise --low 200`
+* [Ex. 9 (sinewave)](http://johnhw.github.io/sinewave_speech/sounds/ex9_sws.wav) | [Ex. 9 (original)](http://johnhw.github.io/sinewave_speech/sounds/ex9.wav) | `-d 2 --high 2800 --window 1500 -o 13`
 
 *(these would probably be better if I spoke more clearly...)*
 
@@ -50,7 +50,7 @@ More examples:
 
 ## Command line parameters
 
-    usage: sws.py [-h] [--lp LP] [--hp HP] [--order ORDER] [--use_lsp]
+    usage: sws.py [-h] [--low LP] [--high HP] [--order ORDER]
                 [--decimate DECIMATE] [--window WINDOW] [--sine] [--buzz BUZZ]
                 [--noise] input_wav [output_wav]
 

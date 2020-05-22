@@ -4,6 +4,7 @@ import numpy as np
 import scipy, scipy.io, scipy.io.wavfile, scipy.signal
 import scipy.interpolate
 import os
+import sys
 from pathlib import Path
 import argparse
 
@@ -401,7 +402,7 @@ def upsample(x, factor):
     return scipy.signal.resample_poly(x, factor, 1)
 
 
-if __name__ == "__main__":
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "input_wav", help="The input file, as a WAV file; ideally 44.1KHz mono."
@@ -456,7 +457,7 @@ if __name__ == "__main__":
         "--overlap", "-l", help="Window overlap, as fraction of the window length", default=0.5, type=float,
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args[1:])
 
     args.output_wav = (
         args.output_wav or os.path.splitext(args.input_wav)[0] + "_sws.wav"
@@ -517,3 +518,8 @@ if __name__ == "__main__":
     
     scipy.io.wavfile.write(output_path, fs, (up_modulated*32767.0).astype(np.int16))
     print(f"Wrote {output_path}")
+
+
+if __name__ == "__main__":
+    main(sys.argv)
+
