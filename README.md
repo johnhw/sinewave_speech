@@ -1,11 +1,11 @@
 # Sinewave Speech
+<img src="imgs/sws.png" width="100%">
 
 A Python implementation of sinewave speech. Converts WAV files of human-speech to [sinewave speech](https://en.wikipedia.org/wiki/Sinewave_synthesis). This is a "simplified" representation of the speech with a small number of frequency and amplitude modulated sine waves. It is surprising how much remains intelligible after this transformation.
 
 Listen to some sounds. If you've not listened to these before, listen to the sinewave version *first*!
 
 
-* Ex. 0 (sinewave) [sounds/ex0_sws.wav] | Ex. 0 (original) [sounds/ex0.wav] | `-d 8 --hp 2000 --lp 100 -o 6 --window 200`
 * Ex. 1 (sinewave) [sounds/ex1_sws.wav] | Ex. 1 (original) [sounds/ex1.wav] | `-d 4 --hp 3000 --lp 100 -o 8`
 * Ex. 2 (sinewave) [sounds/ex2_sws.wav] | Ex. 2 (original) [sounds/ex2.wav] | `-o 6 --window 200 --use_lsp`
 * Ex. 3 (sinewave) [sounds/ex3_sws.wav] | Ex. 3 (original) [sounds/ex3.wav] | `-o 8`
