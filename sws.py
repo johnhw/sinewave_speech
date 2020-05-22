@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy, scipy.io, scipy.io.wavfile, scipy.signal
+import scipy.interpolate
 import os
 from pathlib import Path
 import argparse
@@ -359,6 +360,32 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0):
         k += 1
     return synthesize
 
+import matplotlib.pyplot as plt
+
+def sinethesise_interpolated(wave, frame_len, order, sr=44100, use_lsp=False, interp='nearest'):
+    times, formants, formant_bw, res_rms, env_rms = get_formants(
+        wave, frame_len, order, sr, use_lsp
+    )
+    synthesize = np.zeros_like(wave)
+    window = scipy.signal.hann(frame_len)
+    
+    
+       
+    freqs = [scipy.interpolate.interp1d(times, formants[:, i], kind=interp, bounds_error=False, fill_value="extrapolate",) for i in range(formants.shape[1])]
+    bws = [scipy.interpolate.interp1d(times, formant_bw[:, i], kind=interp, bounds_error=False, fill_value="extrapolate") for i in range(formant_bw.shape[1])]
+    env = scipy.interpolate.interp1d(times, env_rms, kind=interp, bounds_error=False, fill_value="extrapolate")
+    t = np.arange(len(wave))/sr
+    env_amp = env(t)
+    
+    plt.figure()
+    for band in range(formants.shape[1]):
+        f = freqs[band](t)    
+        amp = 50.0 / bws[band](t)
+        plt.plot(t, f)
+        synthesize += np.sin(f * t * 2 * np.pi) * amp 
+    plt.plot(t, env_amp*1000, 'k')
+    plt.show()
+    return synthesize * env_amp
 
 def bp_filter_and_decimate(x, low, high, fs, decimate=1):
     b, a = scipy.signal.butter(4, Wn=[low, high], btype="band", fs=fs)
@@ -366,7 +393,7 @@ def bp_filter_and_decimate(x, low, high, fs, decimate=1):
     return decimated
 
 def normalize(x):
-    return x / np.max(x) 
+    return 0.9 * (x / np.max(x) )
 
 
 def upsample(x, factor):
@@ -406,6 +433,13 @@ if __name__ == "__main__":
         default=300,
     )
     parser.add_argument(
+        "--interpolate",
+        "-i",
+        help="Enable interpolation",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
         "--sine",
         "-s",
         help="Resynthesise using sinewave speech (default)",
@@ -443,14 +477,24 @@ if __name__ == "__main__":
         wav, args.lp, args.hp, fs, decimate=args.decimate
     ))
     if args.sine:
-        modulated = sinethesise(
-            wav_filtered,
-            frame_len=args.window,
-            order=args.order,
-            use_lsp=args.use_lsp,
-            sr=fs / args.decimate,
-            noise=0.0,
-        )
+        if args.interpolate:
+                modulated = sinethesise_interpolated(
+                wav_filtered,
+                frame_len=args.window,
+                order=args.order,
+                use_lsp=args.use_lsp,
+                sr=fs / args.decimate,                
+                interp='cubic'
+            )
+        else:
+            modulated = sinethesise(
+                wav_filtered,
+                frame_len=args.window,
+                order=args.order,
+                use_lsp=args.use_lsp,
+                sr=fs / args.decimate,
+                noise=0.0,
+            )
     if args.buzz or args.noise:
 
         if args.buzz:
