@@ -1,7 +1,7 @@
 # Sinewave Speech
 <img src="imgs/sws.png" width="100%">
 
-A Python implementation of sinewave speech. Converts WAV files of human-speech to [sinewave speech](https://en.wikipedia.org/wiki/Sinewave_synthesis). This is a "simplified" representation of the speech with a small number of frequency and amplitude modulated sine waves. It is surprising how much remains intelligible after this transformation.
+A Python implementation of sinewave speech. Converts WAV files of human-speech to [sinewave speech](https://en.wikipedia.org/wiki/Sinewave_synthesis) using linear predictive coding (LPC). This is a "simplified" representation of the speech with a small number of frequency and amplitude modulated sine waves. It is surprising how much remains intelligible after this transformation.
 
 Listen to some sounds. If you've not listened to these before, listen to the sinewave version *first*!
 
@@ -58,8 +58,8 @@ More examples:
 
     optional arguments:
     -h, --help            show this help message and exit
-    --lp LP               Lowpass filter cutoff
-    --hp HP               Highpass filter cutoff
+    --lp LP               Low frequency cutoff; removes frequencies below this
+    --hp HP               High frequency cutoff; removes frequenceis above this
     --order ORDER, -o ORDER
                             LPC order; number of components in synthesis
     --use_lsp, -l         LPC order; number of components in synthesis
