@@ -211,10 +211,13 @@ def lpc_vocode(
             a = lsp_to_lpc(lsp)
 
             # compute the LPC residual
-            residual = scipy.signal.lfilter(a, 1.0, wave_slice)
+            
+            #residual = scipy.signal.lfilter(a, 1.0, wave_slice)
             # filter, using LPC as the *IIR* component
             # vocoded, last = scipy.signal.lfilter([1.], a, carrier_slice, zi=last)
-            vocoded = scipy.signal.lfilter([1.0], a, carrier_slice)
+            error = error * float(residual_amp)
+            vocoded = scipy.signal.lfilter([1.0], a, carrier_slice) * (1-error)
+            residual = scipy.signal.lfilter([1.0], a, np.random.normal(0,1,carrier_slice.shape)) * error
 
             # match RMS of original signal
             if env:
@@ -224,7 +227,7 @@ def lpc_vocode(
 
             # Hann window 50%-overlap-add to remove clicking
             vocode[i : i + frame_len] += (
-                vocoded * vocode_amp + residual * residual_amp
+                vocoded * vocode_amp + residual
             ) * window
 
     return vocode[: len(wave)]
@@ -367,32 +370,26 @@ def main(args):
         help="The output file to write to; defaults to <input>_sws.wav",
         default=None,
     )
-    parser.add_argument("--low", help="Lowpass filter cutoff", type=float, default=150)
-    parser.add_argument("--high", help="Highpass filter cutoff", type=float, default=3000)
+    parser.add_argument("--low", help="Lowpass filter cutoff. Default 300.", type=float, default=300)
+    parser.add_argument("--high", help="Highpass filter cutoff. Default 3400.", type=float, default=3400)
     parser.add_argument(
-        "--order", "-o", help="Number of components in synthesis", default=4, type=int
+        "--order", "-o", help="Number of components in synthesis. Default 4.", default=4, type=int
     )
    
     parser.add_argument(
-        "--bw_amp",  help="Amplitude scaling by bandwidth; larger values flatten amplitude; smaller values emphasise stronger formants", default=50, type=float
+        "--bw_amp",  help="Amplitude scaling by bandwidth; larger values flatten amplitude; smaller values emphasise stronger formants. Default 40.", default=40, type=float
     )
     parser.add_argument(
-        "--decimate", "-d", help="Sample rate decimation before analysis", default=8, type=int
+        "--decimate", "-d", help="Sample rate decimation before analysis. Default 8.", default=8, type=int
     )
     parser.add_argument(
         "--window",
         "-w",
         type=int,
-        help="LPC window size; smaller means faster changing signal; larger is smoother",
-        default=250,
+        help="LPC window size; smaller means faster changing signal; larger is smoother. Default 200.",
+        default=200,
     )
-    parser.add_argument(
-        "--interpolate",
-        "-i",
-        help="Enable interpolation",
-        action="store_true",
-        default=False,
-    )
+  
     parser.add_argument(
         "--sine",
         "-s",
@@ -402,16 +399,21 @@ def main(args):
     )
     parser.add_argument(
         "--buzz",
-        "-b",
+        "-b",        
         help="Resynthesie using buzz at given frequency (Hz)",
         default=None,
+    )
+    parser.add_argument(
+        "--residual",        
+        help="Residual noise added in buzz mode. Default=0.0",
+        default=0.0,
     )
     parser.add_argument(
         "--noise", "-n", help="Resynthesize using filtered white noise", action="store_true"
     )
 
     parser.add_argument(
-        "--overlap", "-l", help="Window overlap, as fraction of the window length", default=0.5, type=float,
+        "--overlap", "-l", help="Window overlap, as fraction of the window length. Default 0.25", default=0.25, type=float,
     )
 
     args = parser.parse_args(args[1:])
@@ -450,17 +452,24 @@ def main(args):
     if args.buzz or args.noise:
 
         if args.buzz:
-            N = 12 * np.log2(float(args.buzz)/440.0) + 69
-            
-            k = np.exp(-0.1513*N) + 15.927 # ModFM k values from: http://mural.maynoothuniversity.ie/4104/1/VL_New_perspectives.pdf
-            
+            N = 12 * np.log2(float(args.buzz)/440.0) + 69            
+            k = np.exp(-0.1513*N) + 15.927 # ModFM k values from: http://mural.maynoothuniversity.ie/4104/1/VL_New_perspectives.pdf            
             carrier = modfm_buzz(len(wav_filtered), f=np.full(len(wav_filtered), args.buzz, dtype=np.float64),
                         sr=float(fs/args.decimate), k=np.full(len(wav_filtered), k*k))
+            modulated = lpc_vocode(wav_filtered, frame_len=args.window, order=order,
+                                    carrier=carrier, residual_amp=args.residual, vocode_amp=1, env=True, freq_shift=1)
         if args.noise:
             carrier = np.random.normal(0,1,len(wav_filtered))
 
-        modulated = lpc_vocode(wav_filtered, frame_len=args.window, order=order,
+            modulated = lpc_vocode(wav_filtered, frame_len=args.window, order=order,
             carrier=carrier, residual_amp=0, vocode_amp=1, env=True, freq_shift=1)
+            
+            
+
+
+
+
+        
 
     # un-decimate, normalize and write out
     up_modulated = normalize(upsample(modulated, args.decimate))

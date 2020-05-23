@@ -1,5 +1,6 @@
 from sws import main
 
+main(args=["sws.py"] + ("sounds/ex0.wav --high 3400 --low 340 -o 4 --bw_amp 30 --window 300 -l 0.25 ".split()))
 main(args=["sws.py"] + ("sounds/ex1.wav -d 4 --high 3000 --low 150 -o 4".split()))
 main(args=["sws.py"] + ("sounds/ex2.wav -o 5 --window 200 --low 200".split()))
 main(args=["sws.py"] + ("sounds/ex3.wav -o 4".split()))
