@@ -84,6 +84,23 @@ More examples:
 
 Use 16 bit, 44.1KHz mono WAV files as input for best results.
 
+### Transformation steps
+
+* Input amplitude normalised 
+* Bandpass filtered to [low, high] (order 4 Butterworth filter, non-causal)
+* Pre-emphasis applied to slightly emphasise higher frequencies
+* Decimated by a factor `d`
+* Windowed into chunks of length `window`, overlapping by default by `window/2`
+* Autocorrelation of signal computed
+* RMS power of each window computed
+* LPC computed from autocorrelation using Levinson-Durbin
+* LPC converted to line spectral pairs (LSP)
+* LSP converted to `order` (frequency, bandwidth) bands
+* Window by window, each band resynthesied using sinewave oscillators , weighting amplitude by inverse (exponential) bandwidth
+* Windows summed w/Hann window applied
+* Overall amplitude envelope applied from estimated RMS power of each chunk
+* Up-sampled by a factor of `d` and amplitude normalised
+
 This implementation uses LPC estimation to estimate the formant centres using line spectral pairs to estimate formant frequencies and bandwidths. Amplitude of sinusoidal components is inversely proportional to bandwidth when resynthesis is performed, so noiser tracks become quieter.
 
 Suggestions (especially pull requests!) on how to improve the quality of the output would be most welcome.

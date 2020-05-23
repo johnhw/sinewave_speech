@@ -101,8 +101,6 @@ def lsp_to_lpc(lsp):
     a = 0.5 * (p + q)
     return a[:-1]
 
-
-
 def lpc_to_lsp(lpc):
     """Convert LPC to line spectral pairs"""
     l = len(lpc) + 1
@@ -122,8 +120,7 @@ def lpc_to_lsp(lpc):
 
 
 def lpc_to_formants(lpc, sr):
-    """Convert LPC to formants    
-    """
+    """Convert LPC to formants directly"""
 
     # extract roots, get angle and radius
     roots = np.roots(lpc)
@@ -160,7 +157,7 @@ def lpc(wave, order):
     Typically only a is required.
     """
     # only use right half of autocorrelation, normalised by total length
-    autocorr = scipy.signal.correlate(wave, wave)[len(wave) - 1 :] / len(wave)
+    autocorr = scipy.signal.correlate(wave, wave)[len(wave) -1:] / np.sqrt(len(wave))
     a, e, k = levinson_1d(autocorr, order)
     return a, e, k
 
