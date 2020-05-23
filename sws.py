@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 import argparse
+from numpy.polynomial import polynomial as P
 
 # This function is copied directly from https://github.com/cournape/talkbox/blob/master/scikits/talkbox/linpred/py_lpc.py
 # Copyright (c) 2008 Cournapeau David
@@ -83,7 +84,7 @@ def levinson_1d(r, order):
     return a, e, k
 
 
-from numpy.polynomial import polynomial as P
+
 
 
 def lsp_to_lpc(lsp):
@@ -100,19 +101,6 @@ def lsp_to_lpc(lsp):
     a = 0.5 * (p + q)
     return a[:-1]
 
-
-def lpc_noise_synthesize(lpc, samples=10000):
-    """Apply LPC coefficients to white noise"""
-    phase = np.random.uniform(0, 0.5, (samples))
-    signal = scipy.signal.lfilter([1.0], lpc, phase)
-    return signal
-
-
-def lpc_buzz_synthesize(lpc, f, sr, samples=10000):
-    """Apply LPC coefficients to a sawtooth with the given frequency and sample rate"""
-    phase = scipy.signal.sawtooth(2 * np.pi * f * np.arange(samples) / (sr))
-    signal = scipy.signal.lfilter([1.0], lpc, phase)
-    return signal
 
 
 def lpc_to_lsp(lpc):
@@ -160,15 +148,7 @@ def lpc_to_formants(lpc, sr):
     return freqs, bws
 
 
-def load_wave(fname):
-    """Load a 16 bit wave file and return normalised in 0,1 range.
-    Convert stereo WAV to mono by simple averaging. """
-    # load and return a wave file
-    sr, wave = scipy.io.wavfile.read(fname)
-    # convert to mono
-    if len(wave.shape) > 1:
-        wave = np.mean(wave, axis=1)
-    return wave / 32768.0, sr
+
 
 
 def lpc(wave, order):
@@ -183,32 +163,6 @@ def lpc(wave, order):
     autocorr = scipy.signal.correlate(wave, wave)[len(wave) - 1 :] / len(wave)
     a, e, k = levinson_1d(autocorr, order)
     return a, e, k
-
-
-def modfm_buzz(samples, f, sr, k):
-    """Generate a pulse train using modfm:
-        y(t) = cos(x(t)) * exp(cos(x(t))*k - k)
-        
-        samples: number of samples to generate
-        f: base frequency (Hz)
-        sr: sample rate (Hz)
-        k: modulation depth; higher has more harmonics but increases risk of aliasing
-        (e.g. k=1000 for f=50, k=100 for f=200, k=2 for f=4000)        
-    
-    """
-    t = np.arange(samples)
-    phase = f * 2 * np.pi * (t / float(sr))
-    # simple pulse oscillator (ModFM)
-    buzz = np.cos(phase) * np.exp(np.cos(phase) * k - k)
-    return buzz
-
-
-def noise(samples):
-    """Generate white noise in range [-1,1]
-    
-    samples: number of samples to generate
-    """
-    return np.random.uniform(-1, 1, size=samples)
 
 
 def lpc_vocode(
@@ -355,7 +309,7 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, over
             for band in range(formants.shape[1]):
                 freq = formants[k, band]
                 bw = formant_bw[k, band]
-                amp = np.exp(bw/30.0)  # weight sines by inverse bandwidth                
+                amp = np.exp(bw/60.0)  # weight sines by inverse bandwidth                
                 if freq>90.0:
                     syn_slice += np.sin(freq * (t + i) / (sr / (2 * np.pi))) * amp
 
@@ -363,29 +317,69 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, over
         k += 1
     return synthesize
 
-import matplotlib.pyplot as plt
+
 
 def sinethesise_interpolated(wave, frame_len, order, sr=44100, use_lsp=False, interp='nearest'):
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel, RBF, Matern, ConstantKernel
+    import matplotlib.pyplot as plt
+
     times, formants, formant_bw, res_rms, env_rms = get_formants(
         wave, frame_len, order, sr, use_lsp
     )
     synthesize = np.zeros_like(wave)
     window = scipy.signal.hann(frame_len)
     
-    
-       
-    freqs = [scipy.interpolate.interp1d(times, formants[:, i], kind=interp, bounds_error=False, fill_value="extrapolate",) for i in range(formants.shape[1])]
-    bws = [scipy.interpolate.interp1d(times, formant_bw[:, i], kind=interp, bounds_error=False, fill_value="extrapolate") for i in range(formant_bw.shape[1])]
-    env = scipy.interpolate.interp1d(times, env_rms, kind=interp, bounds_error=False, fill_value="extrapolate")
     t = np.arange(len(wave))/sr
-    env_amp = env(t)
-    
+    time_matrix = times[:,None]
+    # predict volume envelope, assuming some small amount of noise
+    env_gp = GaussianProcessRegressor(alpha=1e-3, kernel=Matern() + (1.0 * WhiteKernel()))
+    env_gp.fit(time_matrix, env_rms)    
+    env_pred = env_gp.predict(t[:,None])
     for band in range(formants.shape[1]):
-        f = freqs[band](t)    
-        amp = np.exp(-bws[band](t) / 30.0)
+        mean_f = np.mean(formants[:,band])
+        alpha = 1e-2/np.exp(formant_bw[:,band]/10.0)
+
+        freq_gp = GaussianProcessRegressor(alpha=alpha, kernel=Matern(length_scale_bounds=(0.01, 5.0)))
+        freq_gp.fit(time_matrix, formants[:,band] - mean_f)
+        amp_gp = GaussianProcessRegressor(alpha=1e-13, kernel=Matern() + (1.0 * WhiteKernel()))
+        amp_gp.fit(time_matrix, np.exp(formant_bw[:,band]/60.0))
+    
+        freq_pred = freq_gp.predict(t[:,None]) + mean_f
+        amp_pred = amp_gp.predict(t[:,None])        
+        synthesize += np.sin(freq_pred * t * 2 * np.pi) * amp_pred
+    return synthesize * env_pred
+
+
+
+def load_wave(fname):
+    """Load a 16 bit wave file and return normalised in 0,1 range.
+    Convert stereo WAV to mono by simple averaging. """
+    # load and return a wave file
+    sr, wave = scipy.io.wavfile.read(fname)
+    # convert to mono
+    if len(wave.shape) > 1:
+        wave = np.mean(wave, axis=1)
+    return wave / 32768.0, sr
+
+def modfm_buzz(samples, f, sr, k):
+    """Generate a pulse train using modfm:
+        y(t) = cos(x(t)) * exp(cos(x(t))*k - k)
         
-        synthesize += np.sin(f * t * 2 * np.pi) * amp 
-    return synthesize * env_amp
+        samples: number of samples to generate
+        f: base frequency (Hz)
+        sr: sample rate (Hz)
+        k: modulation depth; higher has more harmonics but increases risk of aliasing
+        (e.g. k=1000 for f=50, k=100 for f=200, k=2 for f=4000)        
+    
+    """
+    t = np.arange(samples)
+    phase = f * 2 * np.pi * (t / float(sr))
+    # simple pulse oscillator (ModFM)
+    buzz = np.cos(phase) * np.exp(np.cos(phase) * k - k)
+    return buzz
+
+
 
 def bp_filter_and_decimate(x, low, high, fs, decimate=1):
     b, a = scipy.signal.butter(4, Wn=[low, high], btype="band", fs=fs)
