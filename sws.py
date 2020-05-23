@@ -258,8 +258,11 @@ def get_lsp(wave, frame_len, order, sr=44100, overlap=None):
 
 def formants_from_lsp(lsps, sr):
     fr = sr / (2*np.pi)
-    freqs = -np.mean(lsps, axis=-1) * fr
-    bws = 0.5 * np.diff(lsps, axis=-1)[..., 0] * fr    
+    
+    c,s = np.cos(lsps), np.sin(lsps)    
+    freqs = -np.arctan2(np.mean(s, axis=-1), np.mean(c, axis=-1)) * fr    
+    diff = np.diff(lsps, axis=-1)[..., 0]
+    bws = -0.5 * np.minimum((2 * np.pi) - abs(diff), abs(diff)) * fr    
     return freqs, bws
 
 import scipy.ndimage
@@ -284,7 +287,7 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, over
             for band in range(formants.shape[1]):
                 freq = formants[k, band]
                 bw = formant_bw[k, band]
-                amp = np.exp(bw/60.0)  # weight sines by inverse bandwidth                
+                amp = np.exp(bw/40.0)  # weight sines by inverse bandwidth                
                 if freq>90.0:
                     syn_slice += np.sin(freq * (t + i) / (sr / (2 * np.pi))) * amp
 
@@ -345,11 +348,11 @@ def bp_filter_and_decimate(x, low, high, fs, decimate=1):
     b, a = scipy.signal.butter(4, Wn=[low, high], btype="band", fs=fs)
     decimated = scipy.signal.filtfilt(b, a, x)[::decimate]
     # pre-emphasis    
-    decimated = scipy.signal.filtfilt([1.0], np.array([1.0, 0.63]), decimated)
+    decimated = scipy.signal.filtfilt([1.0], np.array([1.0, 0.75]), decimated)
     return decimated
 
 def normalize(x):
-    return 0.9 * (x / np.max(x) )
+    return 0.5 * (x / np.max(x) )
 
 
 def upsample(x, factor):
