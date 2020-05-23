@@ -266,7 +266,7 @@ def formants_from_lsp(lsps, sr):
     return freqs, bws
 
 import scipy.ndimage
-def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, overlap=None):
+def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, overlap=None, bw_amp=40.0):
     overlap = overlap or 0.5
     frame_overlap = int(frame_len * overlap)
     times, lsps, env_rms = get_lsp(wave, frame_len, order, sr, frame_overlap)
@@ -287,7 +287,7 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, over
             for band in range(formants.shape[1]):
                 freq = formants[k, band]
                 bw = formant_bw[k, band]
-                amp = np.exp(bw/40.0)  # weight sines by inverse bandwidth                
+                amp = np.exp(bw/bw_amp)  # weight sines by inverse bandwidth                
                 if freq>90.0:
                     syn_slice += np.sin(freq * (t + i) / (sr / (2 * np.pi))) * amp
 
@@ -377,6 +377,9 @@ def main(args):
     )
    
     parser.add_argument(
+        "--bw_amp",  help="Amplitude scaling by bandwidth; larger values flatten amplitude; smaller values emphasise stronger formants", default=50, type=float
+    )
+    parser.add_argument(
         "--decimate", "-d", help="Sample rate decimation before analysis", default=8, type=int
     )
     parser.add_argument(
@@ -442,6 +445,7 @@ def main(args):
                 frame_len=args.window,
                 order=order,
                 use_lsp=True,
+                bw_amp=args.bw_amp,
                 sr=fs / args.decimate,
                 noise=0.0,
                 overlap=args.overlap
