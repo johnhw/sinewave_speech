@@ -50,35 +50,41 @@ More examples:
 
 ## Command line parameters
 
-    usage: sws.py [-h] [--low LP] [--high HP] [--order ORDER]
-                [--decimate DECIMATE] [--window WINDOW] [--sine] [--buzz BUZZ]
-                [--noise] input_wav [output_wav]
+        usage: sws.py [-h] [--low LOW] [--high HIGH] [--order ORDER] [--bw_amp BW_AMP]
+                [--decimate DECIMATE] [--window WINDOW] [--interpolate] [--sine]
+                [--buzz BUZZ] [--noise] [--overlap OVERLAP]
+                input_wav [output_wav]
 
-    positional arguments:
-    input_wav             The input file, as a WAV file; ideally 44.1KHz mono.
-    output_wav            The output file to write to; defaults to
-                            <input>_sws.wav
+        positional arguments:
+        input_wav             The input file, as a WAV file; ideally 44.1KHz mono.
+        output_wav            The output file to write to; defaults to
+                                <input>_sws.wav
 
-    optional arguments:
-    -h, --help            show this help message and exit
-    --low <freq>               Low frequency cutoff; removes frequencies below this
-    --high <freq>              High frequency cutoff; removes frequenceis above this
-    --order ORDER, -o ORDER
-                            LPC order; number of components in synthesis    
-    --decimate DECIMATE, -d DECIMATE
-                            Sample rate decimation before analysis
-    --window WINDOW, -w WINDOW
-                            LPC window size; smaller means faster changing signal;
-                            larger is smoother
-    --sine, -s            Resynthesise using sinewave speech (default)
-    --buzz BUZZ, -b BUZZ  Resynthesie using buzz at given frequency (Hz)
-    --noise, -n           Resynthesize using filtered white noise
+        optional arguments:
+        -h, --help            show this help message and exit
+        --low LOW             Lowpass filter cutoff
+        --high HIGH           Highpass filter cutoff
+        --order ORDER, -o ORDER
+                                Number of components in synthesis
+        --bw_amp BW_AMP       Amplitude scaling by bandwidth; larger values flatten
+                                amplitude; smaller values emphasise stronger formants
+        --decimate DECIMATE, -d DECIMATE
+                                Sample rate decimation before analysis
+        --window WINDOW, -w WINDOW
+                                LPC window size; smaller means faster changing signal;
+                                larger is smoother
+        --interpolate, -i     Enable interpolation
+        --sine, -s            Resynthesise using sinewave speech (default)
+        --buzz BUZZ, -b BUZZ  Resynthesie using buzz at given frequency (Hz)
+        --noise, -n           Resynthesize using filtered white noise
+        --overlap OVERLAP, -l OVERLAP
+                                Window overlap, as fraction of the window length
 
 ## Technical details
 
 Use 16 bit, 44.1KHz mono WAV files as input for best results.
 
-This implementation uses LPC estimation to estimate the formant centres. This form can either be used directly or using line spectral pairs (theoretically more stable, but doesn't always sound good due to very even spacing of formants through the speech band).
+This implementation uses LPC estimation to estimate the formant centres using line spectral pairs to estimate formant frequencies and bandwidths. Amplitude of sinusoidal components is inversely proportional to bandwidth when resynthesis is performed, so noiser tracks become quieter.
 
 Suggestions (especially pull requests!) on how to improve the quality of the output would be most welcome.
 
