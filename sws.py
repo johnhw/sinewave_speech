@@ -233,68 +233,43 @@ def lpc_vocode(
     return vocode[: len(wave)]
 
 
-def get_formants(wave, frame_len, order, sr=44100, use_lsp=False, overlap=None):
-    """Plot the formants of the given wave form.
-    
+
+def get_lsp(wave, frame_len, order, sr=44100, overlap=None):
+    """Get the LSP and envelope of the given wave form.    
     Parameters:
     wave:  Signal to analyse, as a 1D matrix
     frame_len: Length of analysis window, in samples
     order: Order of the LPC analysis performed
-    sr: Sample rate, in Hz
-    use_lsp: If True, use the LSP formant estimation instead of direct LPC
-    
-    Plots both the formant trace and the relative RMS power of the residual signal.
+    sr: Sample rate, in Hz        
     """
     overlap = overlap or frame_len // 2
-    formants = []
-    formant_bw = []
-    times = []
-    res_rms = []
-    env = []
-    for i in range(0, len(wave), overlap):
-        # slice the wave
+    times, env, lsps = [], [], []
+    for i in range(0, len(wave), overlap):        
         wave_slice = wave[i : i + frame_len]
         if len(wave_slice) == frame_len:
             # compute LPC
             a, error, reflection = lpc(wave_slice, order)
-
-            # either use LSP (freq from mean angle, bw from spacing)
-            if use_lsp:
-                lsp = lpc_to_lsp(a)
-
-                formants.append(-np.mean(lsp, axis=1) * (sr / (2 * np.pi)))
-                formant_bw.append(0.5 * np.diff(lsp, axis=1)[:, 0] * (sr / (2 * np.pi)))
-
-            else:
-                # or use roots of LPC directly
-                freq, bw = lpc_to_formants(a, sr)
-                formants.append(freq)
-                formant_bw.append(bw)
-
+            # use LSP (freq from mean angle, bw from spacing)                        
+            lsps.append(lpc_to_lsp(a))
             times.append(i / float(sr))
+            env.append(np.sqrt(np.mean(wave_slice ** 2)))
 
-            # compute the LPC residual
-            residual = scipy.signal.lfilter(a, 1.0, wave_slice)
-            rms = np.sqrt(np.mean(wave_slice ** 2))
-            residual_rms = np.sqrt(np.mean(residual ** 2))
-            res_rms.append(residual_rms)
-            env.append(rms)
+    return np.array(times), np.array(lsps), np.array(env)
 
-    return (
-        np.array(times),
-        np.array(formants),
-        np.array(formant_bw),
-        np.array(res_rms),
-        np.array(env),
-    )
+def formants_from_lsp(lsps, sr):
+    fr = sr / (2*np.pi)
+    freqs = -np.mean(lsps, axis=-1) * fr
+    bws = 0.5 * np.diff(lsps, axis=-1)[..., 0] * fr    
+    return freqs, bws
 
-
+import scipy.ndimage
 def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, overlap=None):
     overlap = overlap or 0.5
     frame_overlap = int(frame_len * overlap)
-    times, formants, formant_bw, res_rms, env_rms = get_formants(
-        wave, frame_len, order, sr, use_lsp, frame_overlap
-    )
+    times, lsps, env_rms = get_lsp(wave, frame_len, order, sr, frame_overlap)
+   
+    formants, formant_bw = formants_from_lsp(lsps, sr)
+
     synthesize = np.zeros_like(wave)
     window = scipy.signal.hann(frame_len)
     t = np.arange(0.0, frame_len)
@@ -317,39 +292,24 @@ def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, over
         k += 1
     return synthesize
 
-
-
-def sinethesise_interpolated(wave, frame_len, order, sr=44100, use_lsp=False, interp='nearest'):
-    from sklearn.gaussian_process import GaussianProcessRegressor
-    from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel, RBF, Matern, ConstantKernel
-    import matplotlib.pyplot as plt
-
-    times, formants, formant_bw, res_rms, env_rms = get_formants(
-        wave, frame_len, order, sr, use_lsp
-    )
+def sinethesise_alternative(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, overlap=None):
+    overlap = overlap or 0.5
+    frame_overlap = int(frame_len * overlap)
+    times, lsps, env_rms = get_lsp(wave, frame_len, order, sr, frame_overlap)
+    t = np.arange(len(wave)) / sr
     synthesize = np.zeros_like(wave)
-    window = scipy.signal.hann(frame_len)
-    
-    t = np.arange(len(wave))/sr
-    time_matrix = times[:,None]
-    # predict volume envelope, assuming some small amount of noise
-    env_gp = GaussianProcessRegressor(alpha=1e-3, kernel=Matern() + (1.0 * WhiteKernel()))
-    env_gp.fit(time_matrix, env_rms)    
-    env_pred = env_gp.predict(t[:,None])
-    for band in range(formants.shape[1]):
-        mean_f = np.mean(formants[:,band])
-        alpha = 1e-2/np.exp(formant_bw[:,band]/10.0)
+    n_bands = lsps.shape[1]
+    env_int = scipy.interpolate.interp1d(times, env_rms, fill_value='extrapolate', kind='cubic')    
+    lsp_int = [scipy.interpolate.interp1d(times, lsps[:,band,:], axis=0, fill_value='extrapolate', kind='nearest') for band in range(n_bands)]
+    env = env_int(t)
 
-        freq_gp = GaussianProcessRegressor(alpha=alpha, kernel=Matern(length_scale_bounds=(0.01, 5.0)))
-        freq_gp.fit(time_matrix, formants[:,band] - mean_f)
-        amp_gp = GaussianProcessRegressor(alpha=1e-13, kernel=Matern() + (1.0 * WhiteKernel()))
-        amp_gp.fit(time_matrix, np.exp(formant_bw[:,band]/60.0))
+    for band in range(n_bands):
+        lsp_smooth = lsp_int[band](t)
+        freq, bw = formants_from_lsp(lsp_smooth, sr)    
+        amp = np.exp(bw/60.0)
+        synthesize += np.sin(freq * t * (2 * np.pi)) * amp
     
-        freq_pred = freq_gp.predict(t[:,None]) + mean_f
-        amp_pred = amp_gp.predict(t[:,None])        
-        synthesize += np.sin(freq_pred * t * 2 * np.pi) * amp_pred
-    return synthesize * env_pred
-
+    return synthesize * env
 
 
 def load_wave(fname):
@@ -473,16 +433,7 @@ def main(args):
     ))
     order = 2 * args.order + 2
     if args.sine:
-        if args.interpolate:
-                modulated = sinethesise_interpolated(
-                wav_filtered,
-                frame_len=args.window,
-                order=order,
-                use_lsp=True,
-                sr=fs / args.decimate,                
-                interp='linear'
-            )
-        else:
+        
             modulated = sinethesise(
                 wav_filtered,
                 frame_len=args.window,
