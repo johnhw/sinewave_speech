@@ -257,15 +257,21 @@ def get_lsp(wave, frame_len, order, sr=44100, overlap=None):
     return np.array(times), np.array(lsps), np.array(env)
 
 def formants_from_lsp(lsps, sr):
-    fr = sr / (2*np.pi)
+    """Convert LSP positions to frequencies and bandwidth.     
+    The average of the pair position is used as the frequency.
+    The spacing is used as the bandwidth.
+    Parameters:
+        lsps: (t, bands, 2) tensor of line spectral pairs
+        sr: sampling rate
     
-    c,s = np.cos(lsps), np.sin(lsps)    
+    """
+    fr = sr / (2*np.pi)
+    c,s = np.cos(lsps), np.sin(lsps)        
     freqs = -np.arctan2(np.mean(s, axis=-1), np.mean(c, axis=-1)) * fr    
     diff = np.diff(lsps, axis=-1)[..., 0]
     bws = -0.5 * np.minimum((2 * np.pi) - abs(diff), abs(diff)) * fr    
     return freqs, bws
 
-import scipy.ndimage
 def sinethesise(wave, frame_len, order, sr=44100, use_lsp=False, noise=1.0, overlap=None, bw_amp=40.0):
     overlap = overlap or 0.5
     frame_overlap = int(frame_len * overlap)
@@ -323,7 +329,7 @@ def load_wave(fname):
     # convert to mono
     if len(wave.shape) > 1:
         wave = np.mean(wave, axis=1)
-    return wave / 32768.0, sr
+    return wave / 32767.0, sr
 
 def modfm_buzz(samples, f, sr, k):
     """Generate a pulse train using modfm:
@@ -345,17 +351,27 @@ def modfm_buzz(samples, f, sr, k):
 
 
 def bp_filter_and_decimate(x, low, high, fs, decimate=1):
+    """Apply [low, high] bandpass to x. Pre-emphasise,
+    and then decimate by the given factor.
+    Parameters:
+        x: [n,] sampled signal
+        low, high: cutoff frequencies, in Hz
+        fs: sampling rate, in Hz,
+        decimate: decimation factor (must be a positive integer)
+    """
+    # pre-emphasis    
+    x = scipy.signal.filtfilt([1.0], np.array([1.0, 0.75]), x)
+    
     b, a = scipy.signal.butter(4, Wn=[low, high], btype="band", fs=fs)
     decimated = scipy.signal.filtfilt(b, a, x)[::decimate]
-    # pre-emphasis    
-    decimated = scipy.signal.filtfilt([1.0], np.array([1.0, 0.75]), decimated)
     return decimated
 
 def normalize(x):
     return 0.5 * (x / np.max(x) )
 
-
 def upsample(x, factor):
+    """Reverse decimation by polyphase upsampling
+    by the given (integer) factor"""
     return scipy.signal.resample_poly(x, factor, 1)
 
 
@@ -370,14 +386,14 @@ def main(args):
         help="The output file to write to; defaults to <input>_sws.wav",
         default=None,
     )
-    parser.add_argument("--low", help="Lowpass filter cutoff. Default 300.", type=float, default=300)
+    parser.add_argument("--low", help="Lowpass filter cutoff. Default 250.", type=float, default=250)
     parser.add_argument("--high", help="Highpass filter cutoff. Default 3400.", type=float, default=3400)
     parser.add_argument(
         "--order", "-o", help="Number of components in synthesis. Default 4.", default=4, type=int
     )
    
     parser.add_argument(
-        "--bw_amp",  help="Amplitude scaling by bandwidth; larger values flatten amplitude; smaller values emphasise stronger formants. Default 40.", default=40, type=float
+        "--bw_amp",  help="Amplitude scaling by bandwidth; larger values flatten amplitude; smaller values emphasise stronger formants. Default 60.", default=60, type=float
     )
     parser.add_argument(
         "--decimate", "-d", help="Sample rate decimation before analysis. Default 8.", default=8, type=int
